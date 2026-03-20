@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { PaymentService } from '../../core/services/payment.service';
 import { VehicleModelService } from '../../core/services/Vehicle-services';
 import { EnumService } from 'src/app/core/services/enum.service';
@@ -56,6 +57,12 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.userDetails = this.localStorageService.getItem(storageKeyNameConstants.USER_DETAILS);
+
+    if (!this.userDetails?.userId || !this.userDetails?.statusEnumId) {
+      this.authService.logout();
+      return;
+    }
+
     this.loadAvatar();
     
     
@@ -83,9 +90,15 @@ export class WalletComponent implements OnInit, OnDestroy {
   }
 
   fetchUserWalletData() {
+    if (!this.userDetails?.userId || !this.userDetails?.statusEnumId) {
+      return;
+    }
+
     this.spinnerService.presentLoading();
     this.subscriptions.add(
-      this.enumService.getUserList(this.userDetails.userId, this.userDetails.statusEnumId).subscribe({
+      this.enumService.getUserList(this.userDetails.userId, this.userDetails.statusEnumId).pipe(
+        finalize(() => this.spinnerService.dismissLoading())
+      ).subscribe({
         next: (res) => {
           if (res.statusCode === 200) {
             const data = res.data[0];
@@ -94,15 +107,20 @@ export class WalletComponent implements OnInit, OnDestroy {
           } else if (res.statusCode === 401) {
             this.authService.logout();
           }
-          this.spinnerService.dismissLoading();
           this.changeDetection.detectChanges();
         },
-        error: () => this.spinnerService.dismissLoading()
+        error: () => {
+          this.changeDetection.detectChanges();
+        }
       })
     );
   }
 
   private getLatestTransactionList() {
+    if (!this.userDetails?.userId) {
+      return;
+    }
+
     this.subscriptions.add(
       this.paymentService.getLatestTransactionList(this.userDetails.userId).subscribe({
         next: (res: any) => {
@@ -207,7 +225,9 @@ export class WalletComponent implements OnInit, OnDestroy {
     if (!this.depositAmount || this.depositAmount <= 0) return;
     this.spinnerService.presentLoading();
     this.subscriptions.add(
-      this.paymentService.orderDataService(this.depositAmount, 1).subscribe({
+      this.paymentService.orderDataService(this.depositAmount, 1).pipe(
+        finalize(() => this.spinnerService.dismissLoading())
+      ).subscribe({
         next: (res) => {
           if (res?.statusCode === 200 && res?.data?.id) {
             const options = {
@@ -222,11 +242,9 @@ export class WalletComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.spinnerService.dismissLoading();
           void this.showErrorAlert(res?.message || 'Unable to start payment. Please try again.');
         },
         error: (error) => {
-          this.spinnerService.dismissLoading();
           void this.showErrorAlert(this.extractApiErrorMessage(error));
         }
       })
@@ -238,7 +256,6 @@ export class WalletComponent implements OnInit, OnDestroy {
       const data = await Checkout.open(options);
       this.verifyPayment(data, amount);
     } catch (error: any) {
-      this.spinnerService.dismissLoading();
       const message = this.extractRazorpayErrorMessage(error);
       void this.showErrorAlert(message);
     }
@@ -325,29 +342,27 @@ export class WalletComponent implements OnInit, OnDestroy {
       createdByUserId: this.userDetails.userId
     };
     this.subscriptions.add(
-      this.paymentService.verifyorderService(payload).subscribe({
+      this.paymentService.verifyorderService(payload).pipe(
+        finalize(() => this.spinnerService.dismissLoading())
+      ).subscribe({
         next: (res) => {
           if (res?.statusCode === 200 && res?.data?.signatureIsValid) {
             this.paymentService.addAmountToUserWallet({
               amount, id: this.userDetails.userId, receivedAmount: amount, paymentTransactionId: res.data.paymentTransactionId
             }).subscribe({
               next: () => {
-                this.spinnerService.dismissLoading();
                 this.fetchUserWalletData();
                 this.getLatestTransactionList();
               },
               error: (error) => {
-                this.spinnerService.dismissLoading();
                 void this.showErrorAlert(this.extractApiErrorMessage(error));
               }
             });
           } else {
-            this.spinnerService.dismissLoading();
             void this.showErrorAlert(res?.message || 'Payment verification failed.');
           }
         },
         error: (error) => {
-          this.spinnerService.dismissLoading();
           void this.showErrorAlert(this.extractApiErrorMessage(error));
         }
       })
@@ -421,10 +436,16 @@ export class WalletComponent implements OnInit, OnDestroy {
     if (!this.withdrawAmount || this.withdrawAmount > this.walletAmount) return;
     this.spinnerService.presentLoading();
     this.subscriptions.add(
-      this.paymentService.addWithdrawRequestFromUser(this.withdrawAmount).subscribe(() => {
-        this.spinnerService.dismissLoading();
-        this.fetchUserWalletData();
-        this.getLatestTransactionList();
+      this.paymentService.addWithdrawRequestFromUser(this.withdrawAmount).pipe(
+        finalize(() => this.spinnerService.dismissLoading())
+      ).subscribe({
+        next: () => {
+          this.fetchUserWalletData();
+          this.getLatestTransactionList();
+        },
+        error: (error) => {
+          void this.showErrorAlert(this.extractApiErrorMessage(error));
+        }
       })
     );
   }

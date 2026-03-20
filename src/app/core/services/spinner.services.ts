@@ -15,29 +15,67 @@ import { LoadingController } from '@ionic/angular';
 export class SpinnerService {
   loading: any;
   private visible$ = new BehaviorSubject<boolean>(false);
+  private activeRequests = 0;
+  private creatingLoader: Promise<void> | null = null;
+  private readonly loaderId = 'global-app-spinner';
 
   constructor(
     public loadingController: LoadingController,
   ) { }
 
   async presentLoading() {
-    this.loading = await this.loadingController.create({
-      message: 'Please wait...',
-      spinner: 'crescent',
-      cssClass: 'loader-css-class',
-    });
-    (await this.loading).present();
+    this.activeRequests++;
+
+    if (this.loading) {
+      return;
+    }
+
+    if (this.creatingLoader) {
+      await this.creatingLoader;
+      return;
+    }
+
+    this.creatingLoader = (async () => {
+      this.loading = await this.loadingController.create({
+        id: this.loaderId,
+        message: 'Please wait...',
+        spinner: 'crescent',
+        cssClass: 'loader-css-class',
+      });
+      await this.loading.present();
+    })();
+
+    try {
+      await this.creatingLoader;
+    } finally {
+      this.creatingLoader = null;
+    }
   }
 
   async dismissLoading() {
+    if (this.activeRequests > 0) {
+      this.activeRequests--;
+    }
+
+    if (this.activeRequests > 0) {
+      return;
+    }
+
     try {
+      if (this.creatingLoader) {
+        await this.creatingLoader;
+      }
+
       if (this.loading) {
-        (await this.loading).dismiss();
+        await this.loading.dismiss();
+      } else {
+        await this.loadingController.dismiss(undefined, undefined, this.loaderId);
       }
     } catch (error) {
       // ignore: loader may already be dismissed
     } finally {
       this.loading = null;
+      this.activeRequests = 0;
     }
   }
 
