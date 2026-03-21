@@ -7,7 +7,7 @@ import { generateRandomOtp } from 'src/app/core/helper/common-helper';
 import { validateMobileNumber } from 'src/app/core/helper/form-validation-helper';
 import { MobileNumberModel } from 'src/app/core/models/session/mobileNumber-model';
 import { SessionService } from 'src/app/core/services/session.service';
-import { AlertController, NavController } from '@ionic/angular';
+import { AlertController, NavController, ViewWillEnter } from '@ionic/angular';
 import { environment } from 'src/environments/environment';
 import messageConstants from 'src/app/core/constants/message-constants';
 import { LocalStorageService } from 'src/app/core/services/local-storage.service';
@@ -21,7 +21,7 @@ import { AuthService } from 'src/app/service/auth.service';
   templateUrl: './mobile-number.component.html',
   styleUrls: ['./mobile-number.component.scss'],
 })
-export class MobileNumberComponent implements OnInit, OnDestroy {
+export class MobileNumberComponent implements OnInit, OnDestroy, ViewWillEnter {
   mobileNumber!: number;
   phoneCode: string = 'IN';
   errorMsg: string = '';
@@ -53,21 +53,46 @@ export class MobileNumberComponent implements OnInit, OnDestroy {
 
     this.sessionStorageService.clearStorage();
 
+    await this.refreshBiometricVisibility();
+  }
+
+  async ionViewWillEnter() {
+    if (!this.localStorageService.getItem(storageKeyNameConstants.USER_DETAILS, true)) {
+      await this.refreshBiometricVisibility();
+    }
+  }
+
+  private async refreshBiometricVisibility(): Promise<void> {
     this.showBiometricLogin = await this.canShowBiometricLogin();
+    if (!this.showBiometricLogin) {
+      const biometricEnabled = this.localStorageService.getItem(storageKeyNameConstants.BIOMETRIC_LOGIN_ENABLED, true);
+      if (biometricEnabled === true) {
+        await this.retryBiometricCheck();
+      }
+    }
+  }
+
+  private async retryBiometricCheck(): Promise<void> {
+    await new Promise((r) => setTimeout(r, 500));
+    this.showBiometricLogin = await this.canShowBiometricLogin();
+    if (!this.showBiometricLogin) {
+      await new Promise((r) => setTimeout(r, 1000));
+      this.showBiometricLogin = await this.canShowBiometricLogin();
+    }
   }
 
   private async canShowBiometricLogin(): Promise<boolean> {
-    const supported = await this.biometricAuthService.isAvailable();
-    if (!supported) {
+    try {
+      const supported = await this.biometricAuthService.isAvailable();
+      if (!supported) {
+        return false;
+      }
+
+      const hasCredential = await this.biometricAuthService.hasCredential();
+      return !!hasCredential;
+    } catch {
       return false;
     }
-
-    const hasCredential = await this.biometricAuthService.hasCredential();
-    if (!hasCredential) {
-      return false;
-    }
-
-    return true;
   }
 
   async loginWithBiometric() {
