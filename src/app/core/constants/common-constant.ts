@@ -22,3 +22,6 @@ export const PLATINUM_SECTION = 1;
 export const APPLICATION_VERSION = 'v 24.10.0.1';
 
 export const MINIMUM_AGE_TO_USE_THE_APPLICATION = 13;
+
+/** Expected session duration in days. Token expiry is controlled by the backend (admin.evegah.com); ensure the API issues tokens with this lifetime. */
+export const SESSION_DURATION_DAYS = 7;

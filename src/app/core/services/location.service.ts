@@ -189,7 +189,30 @@ export class LocationService {
   }
 
   /**
-   * Shows a user-friendly alert when permission is denied, with option to open settings.
+   * Opens Location/GPS settings (not app settings). Use when user needs to enable Location.
+   */
+  async showLocationSettingsAlert(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Location Required',
+      message: 'Please enable Location (GPS) to find nearby eVegah zones and vehicles.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Open Location Settings',
+          handler: () => {
+            NativeSettings.open({
+              optionAndroid: AndroidSettings.Location,
+              optionIOS: IOSSettings.LocationServices
+            });
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  /**
+   * Shows a user-friendly alert when permission is denied, with option to open app settings.
    */
   async showPermissionDeniedAlert(): Promise<void> {
     const alert = await this.alertController.create({

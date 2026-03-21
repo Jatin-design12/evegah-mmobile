@@ -5,6 +5,8 @@
 export const environment = {
   production: false,
   serverUrl: 'https://admin.evegah.com/api/',
+  /** Expected session duration in days. Backend must be configured to issue tokens with this expiry. */
+  SESSION_DURATION_DAYS: 7,
   razro: '989rihuifdg78',
   rakorpayKey: 'rzp_test_SR2R6lsdpqNj32',
   AES_ENCRYPTION_KEY: '+B3+GFLprWjpqn71T3N07UfIV/02SPRCh78xl5YFVexM3Ti6Ed0C1QW84KpJhZHN',

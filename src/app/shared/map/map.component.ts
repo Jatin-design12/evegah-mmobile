@@ -22,8 +22,8 @@ const currentLocationMarker = {
 
 const activeRideMarker = {
   icon: 'assets/images/ride-marker.png',
-  sizeX: 60,
-  sizeY: 60
+  sizeX: 120,
+  sizeY: 120
 };
 
 const evegahZoneMarker = {
@@ -311,9 +311,9 @@ export class MapComponent implements OnInit, OnDestroy, OnChanges {
   async requestLocationPermission() {
     const granted = await this.locationService.requestPermission();
     if (granted) {
-      this.showAlert('Location Permission is enabled. Click on Refresh Location Status button.');
+      await this.refreshLocationStatus();
     } else {
-      await this.locationService.showPermissionDeniedAlert();
+      await this.locationService.showLocationSettingsAlert();
     }
   }
 

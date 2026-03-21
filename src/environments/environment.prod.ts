@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
   serverUrl: 'https://admin.evegah.com/api/',
+  SESSION_DURATION_DAYS: 7,
   rakorpayKey: 'rzp_live_QGWgrHCgrIGAwH',
   AES_ENCRYPTION_KEY: '+B3+GFLprWjpqn71T3N07UfIV/02SPRCh78xl5YFVexM3Ti6Ed0C1QW84KpJhZHN',
   googleMapsAPIKey: 'AIzaSyC_Pn12n9hRH5jQdxU7hQUOPDy820ehjwo',
