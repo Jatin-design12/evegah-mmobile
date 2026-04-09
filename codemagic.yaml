@@ -6,26 +6,25 @@ workflows:
       node: 18
       xcode: latest
 
-    scripts:
-      - name: Install dependencies
-        script: |
-          npm install
-          npm install -g @ionic/cli
-          npm install -g @angular/cli
+scripts:
+  - name: Install dependencies
+    script: |
+      npm install --legacy-peer-deps
+      npm install @angular-devkit/build-angular --save-dev
+      npm install -g @ionic/cli
 
-      - name: Build Ionic app
-        script: |
-          ionic build
+  - name: Build Ionic app
+    script: |
+      ionic build --prod
 
-      - name: Sync Capacitor
-        script: |
-          npx cap sync ios
+  - name: Sync Capacitor
+    script: |
+      npx cap sync ios
 
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
-
+  - name: Install CocoaPods
+    script: |
+      cd ios/App
+      pod install
     artifacts:
       - build/ios/ipa/*.ipa
 
