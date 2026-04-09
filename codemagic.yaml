@@ -17,3 +17,9 @@ scripts:
     script: |
       cd ios/App
       pod install
+artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - chavdahimanshu2010@gmail.com
